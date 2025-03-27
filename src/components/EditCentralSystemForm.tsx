@@ -47,6 +47,20 @@ const EditCentralSystemForm: React.FC<EditCentralSystemFormProps> = ({ system, o
       
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
+          Poids dans le calcul global ({Math.round(formData.weight * 100)}%)
+        </label>
+        <input
+          type="range"
+          min="1"
+          max="100"
+          value={formData.weight * 100}
+          onChange={(e) => setFormData({ ...formData, weight: parseInt(e.target.value) / 100 })}
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+        />
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Statut
         </label>
         <select

@@ -16,44 +16,35 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   onEdit
 }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">{projectInfo.name}</h1>
-        </div>
-        <div className="flex items-center bg-blue-50 px-3 py-1 rounded-md">
-          <span className="text-sm text-blue-700">Dernière mise à jour: {formatDate(projectInfo.lastUpdated)}</span>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="flex justify-between">
-            <p className="text-sm text-gray-500 mb-1">Client</p>
+    <div className="bg-white rounded-lg shadow-md p-4 print:shadow-none print:p-2 print:border print:border-gray-200">
+      <div className="flex justify-between items-start mb-3 print:mb-2">
+        <div className="flex-grow">
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold text-gray-800 mr-2">{projectInfo.name}</h1>
             <button 
               onClick={onEdit}
-              className="text-blue-500 hover:text-blue-700"
+              className="text-blue-500 hover:text-blue-700 print:hidden"
               title="Modifier les informations du projet"
             >
               <Edit2 size={16} />
             </button>
           </div>
-          <p className="font-semibold">{projectInfo.client}</p>
+          <div className="flex flex-wrap items-center mt-1 text-sm text-gray-600">
+            <span className="mr-4">Client: <span className="font-medium">{projectInfo.client}</span></span>
+            <span>Période: <span className="font-medium">{formatDate(projectInfo.startDate)} - {formatDate(projectInfo.endDate)}</span></span>
+          </div>
         </div>
-        <div className="bg-gray-50 p-4 rounded-lg col-span-2">
-          <p className="text-sm text-gray-500 mb-1">Période</p>
-          <p className="font-semibold">
-            {formatDate(projectInfo.startDate)} - {formatDate(projectInfo.endDate)}
-          </p>
+        <div className="flex items-center bg-blue-50 px-3 py-1 rounded-md print:bg-transparent print:px-0">
+          <span className="text-sm text-blue-700 print:text-gray-600">Dernière mise à jour: {formatDate(projectInfo.lastUpdated)}</span>
         </div>
       </div>
       
-      <div className="mb-2">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-semibold text-gray-800">Avancement global</h2>
-          <span className="text-2xl font-bold text-blue-600">{overallProgress}%</span>
+      <div className="mb-1">
+        <div className="flex justify-between items-center mb-1">
+          <h2 className="text-base font-semibold text-gray-800">Avancement global</h2>
+          <span className="text-xl font-bold text-blue-600">{overallProgress}%</span>
         </div>
-        <ProgressBar progress={overallProgress} height="h-6" />
+        <ProgressBar progress={overallProgress} height="h-5" />
       </div>
     </div>
   );

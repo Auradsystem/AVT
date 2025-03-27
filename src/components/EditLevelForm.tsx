@@ -87,15 +87,30 @@ const EditLevelForm: React.FC<EditLevelFormProps> = ({ level, systemTypes, onUpd
       </div>
       
       <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Poids dans le calcul global ({Math.round(formData.weight * 100)}%)
+        </label>
+        <input
+          type="range"
+          min="1"
+          max="100"
+          value={formData.weight * 100}
+          onChange={(e) => setFormData({ ...formData, weight: parseInt(e.target.value) / 100 })}
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+        />
+      </div>
+      
+      <div>
         <h4 className="text-sm font-medium text-gray-700 mb-2">Avancement des systèmes</h4>
         <div className="space-y-3">
           {formData.systems.map((system) => {
             const systemType = systemTypes.find(type => type.id === system.systemId);
+            if (!systemType) return null;
             return (
               <div key={system.systemId}>
                 <div className="flex justify-between items-center mb-1">
                   <label className="text-sm font-medium text-gray-700">
-                    {systemType?.name}
+                    {systemType.name}
                   </label>
                   <span className="text-sm text-gray-500">{system.progress}%</span>
                 </div>

@@ -16,8 +16,8 @@ import {
   attentionPoints as initialAttentionPoints,
   calculateOverallProgress
 } from './data/mockData';
-import { Activity, Settings } from 'lucide-react';
-import { ParkingLevel, CentralSystem } from './types';
+import { Activity, Settings, Printer } from 'lucide-react';
+import { ParkingLevel, CentralSystem, SystemType } from './types';
 
 function App() {
   const [projectInfo, setProjectInfo] = useState(initialProjectInfo);
@@ -26,6 +26,7 @@ function App() {
   const [nextSteps, setNextSteps] = useState(initialNextSteps);
   const [attentionPoints, setAttentionPoints] = useState(initialAttentionPoints);
   const [overallProgress, setOverallProgress] = useState(calculateOverallProgress());
+  const [activeSystemTypes, setActiveSystemTypes] = useState<SystemType[]>(systemTypes);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,8 +36,14 @@ function App() {
 
   // Recalculate overall progress when data changes
   useEffect(() => {
-    setOverallProgress(calculateOverallProgress());
-  }, [parkingLevels, centralSystems]);
+    const newOverallProgress = calculateOverallProgress(parkingLevels, centralSystems, activeSystemTypes);
+    setOverallProgress(newOverallProgress);
+  }, [parkingLevels, centralSystems, activeSystemTypes]);
+
+  // Handle print
+  const handlePrint = () => {
+    window.print();
+  };
 
   // Edit project info
   const handleEditProject = () => {
@@ -102,6 +109,99 @@ function App() {
     setIsModalOpen(true);
   };
 
+  // Edit system types
+  const handleEditSystemTypes = () => {
+    setModalTitle('Gérer les types de systèmes');
+    setModalContent(
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600">
+          Ajoutez, modifiez ou supprimez les types de systèmes. La suppression d'un type affectera le calcul global.
+        </p>
+        {activeSystemTypes.map((type, index) => (
+          <div key={type.id} className="flex items-center space-x-2 pb-3 border-b border-gray-200">
+            <div className="flex-grow">
+              <input
+                type="text"
+                value={type.name}
+                onChange={(e) => {
+                  const updated = [...activeSystemTypes];
+                  updated[index] = { ...type, name: e.target.value };
+                  setActiveSystemTypes(updated);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="w-24">
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={type.weight * 100}
+                onChange={(e) => {
+                  const updated = [...activeSystemTypes];
+                  updated[index] = { ...type, weight: parseInt(e.target.value) / 100 };
+                  setActiveSystemTypes(updated);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <button
+              onClick={() => {
+                const updated = activeSystemTypes.filter((_, i) => i !== index);
+                setActiveSystemTypes(updated);
+                
+                // Also update all levels to remove this system type
+                const updatedLevels = parkingLevels.map(level => ({
+                  ...level,
+                  systems: level.systems.filter(sys => sys.systemId !== type.id)
+                }));
+                setParkingLevels(updatedLevels);
+              }}
+              className="p-2 text-red-500 hover:text-red-700"
+            >
+              Supprimer
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={() => {
+            const newId = `system-${Date.now()}`;
+            setActiveSystemTypes([
+              ...activeSystemTypes,
+              { id: newId, name: 'Nouveau système', weight: 0.1 }
+            ]);
+            
+            // Add this system to all levels with 0% progress
+            const updatedLevels = parkingLevels.map(level => ({
+              ...level,
+              systems: [
+                ...level.systems,
+                { systemId: newId, progress: 0, status: 'not-started' as const }
+              ]
+            }));
+            setParkingLevels(updatedLevels);
+          }}
+          className="w-full px-4 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+        >
+          + Ajouter un type de système
+        </button>
+      </div>
+    );
+    setModalSaveAction(() => () => {
+      // Normalize weights to ensure they sum to 1
+      const totalWeight = activeSystemTypes.reduce((sum, type) => sum + type.weight, 0);
+      if (totalWeight > 0) {
+        const normalizedTypes = activeSystemTypes.map(type => ({
+          ...type,
+          weight: type.weight / totalWeight
+        }));
+        setActiveSystemTypes(normalizedTypes);
+      }
+      setIsModalOpen(false);
+    });
+    setIsModalOpen(true);
+  };
+
   // Edit level
   const handleEditLevel = (levelId: number) => {
     const level = parkingLevels.find(level => level.id === levelId);
@@ -111,7 +211,7 @@ function App() {
     setModalContent(
       <EditLevelForm 
         level={level} 
-        systemTypes={systemTypes}
+        systemTypes={activeSystemTypes}
         onUpdate={(updatedLevel) => {
           setParkingLevels(parkingLevels.map(l => 
             l.id === levelId ? updatedLevel : l
@@ -122,6 +222,89 @@ function App() {
     );
     setModalSaveAction(() => () => {
       // This is handled by the form's onUpdate
+    });
+    setIsModalOpen(true);
+  };
+
+  // Add new level
+  const handleAddLevel = () => {
+    setModalTitle('Ajouter un nouveau niveau');
+    
+    const newLevelId = parkingLevels.length > 0 
+      ? Math.max(...parkingLevels.map(l => l.id)) + 1 
+      : 1;
+    
+    const newLevel: ParkingLevel = {
+      id: newLevelId,
+      name: `Niveau -${newLevelId}`,
+      isCollector: false,
+      weight: 0.2,
+      systems: activeSystemTypes.map(type => ({
+        systemId: type.id,
+        progress: 0,
+        status: 'not-started'
+      })),
+      attentionPoints: []
+    };
+
+    setModalContent(
+      <EditLevelForm 
+        level={newLevel} 
+        systemTypes={activeSystemTypes}
+        onUpdate={(updatedLevel) => {
+          setParkingLevels([...parkingLevels, updatedLevel]);
+          setIsModalOpen(false);
+        }}
+      />
+    );
+    setModalSaveAction(() => () => {
+      // This is handled by the form's onUpdate
+    });
+    setIsModalOpen(true);
+  };
+
+  // Delete level
+  const handleDeleteLevel = (levelId: number) => {
+    setModalTitle('Supprimer le niveau');
+    setModalContent(
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600">
+          Êtes-vous sûr de vouloir supprimer ce niveau ? Cette action est irréversible.
+        </p>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={() => setIsModalOpen(false)}
+            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => {
+              const updatedLevels = parkingLevels.filter(level => level.id !== levelId);
+              
+              // Recalculate weights to ensure they sum to 1
+              const totalWeight = updatedLevels.reduce((sum, level) => sum + level.weight, 0);
+              if (totalWeight > 0) {
+                const normalizedLevels = updatedLevels.map(level => ({
+                  ...level,
+                  weight: level.weight / totalWeight
+                }));
+                setParkingLevels(normalizedLevels);
+              } else {
+                setParkingLevels(updatedLevels);
+              }
+              
+              setIsModalOpen(false);
+            }}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+          >
+            Supprimer
+          </button>
+        </div>
+      </div>
+    );
+    setModalSaveAction(() => () => {
+      // This is handled by the buttons
     });
     setIsModalOpen(true);
   };
@@ -145,6 +328,79 @@ function App() {
     );
     setModalSaveAction(() => () => {
       // This is handled by the form's onUpdate
+    });
+    setIsModalOpen(true);
+  };
+
+  // Add central system
+  const handleAddCentralSystem = () => {
+    setModalTitle('Ajouter un système central');
+    
+    const newSystem: CentralSystem = {
+      id: `central-${Date.now()}`,
+      name: 'Nouveau système',
+      progress: 0,
+      status: 'not-started',
+      weight: 0.2
+    };
+
+    setModalContent(
+      <EditCentralSystemForm 
+        system={newSystem}
+        onUpdate={(updatedSystem) => {
+          setCentralSystems([...centralSystems, updatedSystem]);
+          setIsModalOpen(false);
+        }}
+      />
+    );
+    setModalSaveAction(() => () => {
+      // This is handled by the form's onUpdate
+    });
+    setIsModalOpen(true);
+  };
+
+  // Delete central system
+  const handleDeleteCentralSystem = (systemId: string) => {
+    setModalTitle('Supprimer le système central');
+    setModalContent(
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600">
+          Êtes-vous sûr de vouloir supprimer ce système ? Cette action est irréversible.
+        </p>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={() => setIsModalOpen(false)}
+            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => {
+              const updatedSystems = centralSystems.filter(system => system.id !== systemId);
+              
+              // Recalculate weights to ensure they sum to 1
+              const totalWeight = updatedSystems.reduce((sum, system) => sum + system.weight, 0);
+              if (totalWeight > 0) {
+                const normalizedSystems = updatedSystems.map(system => ({
+                  ...system,
+                  weight: system.weight / totalWeight
+                }));
+                setCentralSystems(normalizedSystems);
+              } else {
+                setCentralSystems(updatedSystems);
+              }
+              
+              setIsModalOpen(false);
+            }}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+          >
+            Supprimer
+          </button>
+        </div>
+      </div>
+    );
+    setModalSaveAction(() => () => {
+      // This is handled by the buttons
     });
     setIsModalOpen(true);
   };
@@ -241,6 +497,11 @@ function App() {
       setIsModalOpen(false);
     });
     setIsModalOpen(true);
+  };
+
+  // Delete next step
+  const handleDeleteNextStep = (stepId: number) => {
+    setNextSteps(nextSteps.filter(step => step.id !== stepId));
   };
 
   // Edit attention point
@@ -388,61 +649,85 @@ function App() {
     setIsModalOpen(true);
   };
 
+  // Delete attention point
+  const handleDeleteAttentionPoint = (pointId: number) => {
+    setAttentionPoints(attentionPoints.filter(point => point.id !== pointId));
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gray-100 print:bg-white">
+      <header className="bg-white shadow-sm print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <Activity className="h-8 w-8 text-blue-600 mr-3" />
               <h1 className="text-xl font-bold text-gray-900">Tableau de Bord SSI</h1>
             </div>
-            <button className="p-2 rounded-full hover:bg-gray-100">
-              <Settings className="h-5 w-5 text-gray-600" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={handlePrint}
+                className="p-2 rounded-full hover:bg-gray-100"
+                title="Imprimer"
+              >
+                <Printer className="h-5 w-5 text-gray-600" />
+              </button>
+              <button 
+                onClick={handleEditSystemTypes}
+                className="p-2 rounded-full hover:bg-gray-100"
+                title="Paramètres"
+              >
+                <Settings className="h-5 w-5 text-gray-600" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 print:py-2 print:px-0">
+        <div className="space-y-4 print:space-y-2">
           <ProjectOverview 
             projectInfo={projectInfo} 
             overallProgress={overallProgress}
             onEdit={handleEditProject}
           />
           
-          <div className="space-y-6">
+          <div className="space-y-4 print:space-y-2">
             <CombinedLevelProgress 
               levels={parkingLevels} 
-              systemTypes={systemTypes}
+              systemTypes={activeSystemTypes}
               onEditLevel={handleEditLevel}
+              onDeleteLevel={handleDeleteLevel}
+              onAddLevel={handleAddLevel}
             />
             
             <CentralSystemProgress 
               systems={centralSystems}
               onEdit={handleEditCentralSystem}
+              onDelete={handleDeleteCentralSystem}
+              onAdd={handleAddCentralSystem}
             />
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 print:gap-2">
               <NextSteps 
                 steps={nextSteps}
                 onEdit={handleEditNextStep}
                 onAdd={handleAddNextStep}
+                onDelete={handleDeleteNextStep}
               />
               
               <AttentionPoints 
                 points={attentionPoints}
                 onEdit={handleEditAttentionPoint}
                 onAdd={handleAddAttentionPoint}
+                onDelete={handleDeleteAttentionPoint}
               />
             </div>
           </div>
         </div>
       </main>
 
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <footer className="bg-white border-t border-gray-200 mt-8 print:mt-2 print:border-t-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 print:py-1">
           <p className="text-sm text-gray-500 text-center">
             Dashboard de suivi d'avancement de projet © {new Date().getFullYear()}
           </p>

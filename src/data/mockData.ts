@@ -135,14 +135,14 @@ export const attentionPoints: AttentionPoint[] = [
 ];
 
 // Calculate level progress based on systems
-export const calculateLevelProgress = (level: ParkingLevel): number => {
+export const calculateLevelProgress = (level: ParkingLevel, activeSystemTypes: SystemType[]): number => {
   if (level.systems.length === 0) return 0;
   
   let totalProgress = 0;
   let totalWeight = 0;
   
   level.systems.forEach(system => {
-    const systemType = systemTypes.find(type => type.id === system.systemId);
+    const systemType = activeSystemTypes.find(type => type.id === system.systemId);
     if (systemType) {
       totalProgress += system.progress * systemType.weight;
       totalWeight += systemType.weight;
@@ -153,13 +153,17 @@ export const calculateLevelProgress = (level: ParkingLevel): number => {
 };
 
 // Calculate overall project progress
-export const calculateOverallProgress = (): number => {
+export const calculateOverallProgress = (
+  levels: ParkingLevel[] = parkingLevels, 
+  systems: CentralSystem[] = centralSystems,
+  activeSystemTypes: SystemType[] = systemTypes
+): number => {
   // Calculate levels contribution
   let levelsProgress = 0;
   let levelsTotalWeight = 0;
   
-  parkingLevels.forEach(level => {
-    levelsProgress += calculateLevelProgress(level) * level.weight;
+  levels.forEach(level => {
+    levelsProgress += calculateLevelProgress(level, activeSystemTypes) * level.weight;
     levelsTotalWeight += level.weight;
   });
   
@@ -169,7 +173,7 @@ export const calculateOverallProgress = (): number => {
   let centralProgress = 0;
   let centralTotalWeight = 0;
   
-  centralSystems.forEach(system => {
+  systems.forEach(system => {
     centralProgress += system.progress * system.weight;
     centralTotalWeight += system.weight;
   });
