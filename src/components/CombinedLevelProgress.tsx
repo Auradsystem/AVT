@@ -43,6 +43,19 @@ const CombinedLevelProgress: React.FC<CombinedLevelProgressProps> = ({
     setExpandedLevels({});
   };
 
+  // Fonction pour déterminer la couleur en fonction du pourcentage
+  const getProgressColor = (progress: number) => {
+    if (progress < 25) {
+      return 'bg-red-500'; // Rouge pour moins de 25%
+    } else if (progress < 50) {
+      return 'bg-amber-500'; // Ambre pour 25-49%
+    } else if (progress < 75) {
+      return 'bg-blue-500'; // Bleu pour 50-74%
+    } else {
+      return 'bg-green-500'; // Vert pour 75-100%
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-4 print:shadow-none print:p-2 print:border print:border-gray-200">
       <div className="flex justify-between items-center mb-3 print:mb-2">
@@ -167,18 +180,22 @@ const CombinedLevelProgress: React.FC<CombinedLevelProgressProps> = ({
                             {level.systems.map((system) => {
                               const systemType = systemTypes.find(type => type.id === system.systemId);
                               if (!systemType) return null;
+                              
+                              // Déterminer la couleur en fonction du pourcentage
+                              const progressColor = getProgressColor(system.progress);
+                              
                               return (
                                 <div key={system.systemId} className="bg-white p-2 rounded border border-gray-200">
                                   <div className="flex justify-between items-center mb-1">
                                     <h5 className="font-medium text-gray-800 text-xs">{systemType.name}</h5>
                                     <span className="font-semibold text-xs">{system.progress}%</span>
                                   </div>
-                                  <ProgressBar 
-                                    progress={system.progress} 
-                                    status={system.status}
-                                    showLabel={false}
-                                    height="h-2"
-                                  />
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className={`${progressColor} h-2 rounded-full transition-all duration-500 ease-in-out`}
+                                      style={{ width: `${system.progress}%` }}
+                                    ></div>
+                                  </div>
                                 </div>
                               );
                             })}
