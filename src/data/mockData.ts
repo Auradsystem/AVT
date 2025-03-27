@@ -3,6 +3,7 @@ import { ProjectInfo, ParkingLevel, CentralSystem, NextStep, AttentionPoint, Sys
 export const projectInfo: ProjectInfo = {
   name: "Installation Système SSI - Parkings",
   client: "Nom du Client",
+  company: "Nom de l'Entreprise",
   startDate: "2025-04-01",
   endDate: "2025-07-30",
   lastUpdated: "2025-03-23"
@@ -23,11 +24,11 @@ export const parkingLevels: ParkingLevel[] = [
     isCollector: true,
     weight: 0.3,
     systems: [
-      { systemId: "detection", progress: 45, status: "in-progress" },
-      { systemId: "sirens", progress: 30, status: "in-progress" },
-      { systemId: "wiring", progress: 50, status: "in-progress" },
-      { systemId: "modules", progress: 40, status: "in-progress" },
-      { systemId: "pcf", progress: 35, status: "in-progress" }
+      { systemId: "detection", progress: 0, status: "not-started" },
+      { systemId: "sirens", progress: 0, status: "not-started" },
+      { systemId: "wiring", progress: 0, status: "not-started" },
+      { systemId: "modules", progress: 0, status: "not-started" },
+      { systemId: "pcf", progress: 0, status: "not-started" }
     ],
     attentionPoints: []
   },
@@ -37,13 +38,13 @@ export const parkingLevels: ParkingLevel[] = [
     isCollector: false,
     weight: 0.25,
     systems: [
-      { systemId: "detection", progress: 30, status: "in-progress" },
-      { systemId: "sirens", progress: 25, status: "in-progress" },
-      { systemId: "wiring", progress: 40, status: "in-progress" },
-      { systemId: "modules", progress: 25, status: "in-progress" },
-      { systemId: "pcf", progress: 30, status: "in-progress" }
+      { systemId: "detection", progress: 0, status: "not-started" },
+      { systemId: "sirens", progress: 0, status: "not-started" },
+      { systemId: "wiring", progress: 0, status: "not-started" },
+      { systemId: "modules", progress: 0, status: "not-started" },
+      { systemId: "pcf", progress: 0, status: "not-started" }
     ],
-    attentionPoints: ["Retard sur l'installation des détecteurs"]
+    attentionPoints: []
   },
   {
     id: 3,
@@ -51,11 +52,11 @@ export const parkingLevels: ParkingLevel[] = [
     isCollector: true,
     weight: 0.25,
     systems: [
-      { systemId: "detection", progress: 35, status: "in-progress" },
-      { systemId: "sirens", progress: 30, status: "in-progress" },
-      { systemId: "wiring", progress: 45, status: "in-progress" },
-      { systemId: "modules", progress: 30, status: "in-progress" },
-      { systemId: "pcf", progress: 35, status: "in-progress" }
+      { systemId: "detection", progress: 0, status: "not-started" },
+      { systemId: "sirens", progress: 0, status: "not-started" },
+      { systemId: "wiring", progress: 0, status: "not-started" },
+      { systemId: "modules", progress: 0, status: "not-started" },
+      { systemId: "pcf", progress: 0, status: "not-started" }
     ],
     attentionPoints: []
   },
@@ -65,13 +66,13 @@ export const parkingLevels: ParkingLevel[] = [
     isCollector: false,
     weight: 0.2,
     systems: [
-      { systemId: "detection", progress: 20, status: "in-progress" },
-      { systemId: "sirens", progress: 15, status: "in-progress" },
-      { systemId: "wiring", progress: 25, status: "in-progress" },
-      { systemId: "modules", progress: 20, status: "in-progress" },
-      { systemId: "pcf", progress: 20, status: "in-progress" }
+      { systemId: "detection", progress: 0, status: "not-started" },
+      { systemId: "sirens", progress: 0, status: "not-started" },
+      { systemId: "wiring", progress: 0, status: "not-started" },
+      { systemId: "modules", progress: 0, status: "not-started" },
+      { systemId: "pcf", progress: 0, status: "not-started" }
     ],
-    attentionPoints: ["Modification du plan de câblage nécessaire"]
+    attentionPoints: []
   }
 ];
 
@@ -79,22 +80,22 @@ export const centralSystems: CentralSystem[] = [
   {
     id: "central",
     name: "Centrale SSI",
-    progress: 70,
-    status: "testing",
+    progress: 0,
+    status: "not-started",
     weight: 0.5
   },
   {
     id: "programming",
     name: "Programmation",
-    progress: 40,
-    status: "in-progress",
+    progress: 0,
+    status: "not-started",
     weight: 0.3
   },
   {
     id: "interface",
     name: "Interfaces externes",
-    progress: 25,
-    status: "in-progress",
+    progress: 0,
+    status: "not-started",
     weight: 0.2
   }
 ];

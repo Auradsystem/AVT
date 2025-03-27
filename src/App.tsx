@@ -10,23 +10,25 @@ import EditCentralSystemForm from './components/EditCentralSystemForm';
 import { 
   projectInfo as initialProjectInfo, 
   parkingLevels as initialParkingLevels, 
-  systemTypes,
+  systemTypes as initialSystemTypes,
   centralSystems as initialCentralSystems,
   nextSteps as initialNextSteps, 
   attentionPoints as initialAttentionPoints,
   calculateOverallProgress
 } from './data/mockData';
-import { Activity, Settings, Printer } from 'lucide-react';
+import { Activity, Settings, Printer, Save, RefreshCw } from 'lucide-react';
 import { ParkingLevel, CentralSystem, SystemType, ProjectInfo } from './types';
+import { saveData, loadData } from './utils/storage';
 
 function App() {
+  // État initial
   const [projectInfo, setProjectInfo] = useState<ProjectInfo>(initialProjectInfo);
   const [parkingLevels, setParkingLevels] = useState(initialParkingLevels);
   const [centralSystems, setCentralSystems] = useState(initialCentralSystems);
   const [nextSteps, setNextSteps] = useState(initialNextSteps);
   const [attentionPoints, setAttentionPoints] = useState(initialAttentionPoints);
-  const [overallProgress, setOverallProgress] = useState(calculateOverallProgress());
-  const [activeSystemTypes, setActiveSystemTypes] = useState<SystemType[]>(systemTypes);
+  const [activeSystemTypes, setActiveSystemTypes] = useState<SystemType[]>(initialSystemTypes);
+  const [overallProgress, setOverallProgress] = useState(0);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,88 +36,76 @@ function App() {
   const [modalContent, setModalContent] = useState<React.ReactNode>(null);
   const [modalSaveAction, setModalSaveAction] = useState<() => void>(() => {});
 
+  // Charger les données depuis le localStorage au démarrage
+  useEffect(() => {
+    const savedData = loadData();
+    if (savedData) {
+      setProjectInfo(savedData.projectInfo);
+      setParkingLevels(savedData.parkingLevels);
+      setCentralSystems(savedData.centralSystems);
+      setNextSteps(savedData.nextSteps);
+      setAttentionPoints(savedData.attentionPoints);
+      setActiveSystemTypes(savedData.systemTypes);
+    }
+  }, []);
+
   // Recalculate overall progress when data changes
   useEffect(() => {
     const newOverallProgress = calculateOverallProgress(parkingLevels, centralSystems, activeSystemTypes);
     setOverallProgress(newOverallProgress);
   }, [parkingLevels, centralSystems, activeSystemTypes]);
 
+  // Sauvegarder les données quand elles changent
+  useEffect(() => {
+    saveData({
+      projectInfo,
+      parkingLevels,
+      centralSystems,
+      nextSteps,
+      attentionPoints,
+      systemTypes: activeSystemTypes
+    });
+  }, [projectInfo, parkingLevels, centralSystems, nextSteps, attentionPoints, activeSystemTypes]);
+
   // Handle print
   const handlePrint = () => {
     window.print();
   };
 
-  // Edit project info
-  const handleEditProject = () => {
-    // Créer une copie locale pour l'édition
-    const editingProjectInfo = { ...projectInfo };
-    
-    setModalTitle('Modifier les informations du projet');
+  // Réinitialiser les données
+  const handleReset = () => {
+    setModalTitle('Réinitialiser les données');
     setModalContent(
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nom du projet
-          </label>
-          <input
-            type="text"
-            value={editingProjectInfo.name}
-            onChange={(e) => {
-              editingProjectInfo.name = e.target.value;
+        <p className="text-sm text-gray-600">
+          Êtes-vous sûr de vouloir réinitialiser toutes les données ? Cette action est irréversible.
+        </p>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={() => setIsModalOpen(false)}
+            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => {
+              setProjectInfo(initialProjectInfo);
+              setParkingLevels(initialParkingLevels);
+              setCentralSystems(initialCentralSystems);
+              setNextSteps(initialNextSteps);
+              setAttentionPoints(initialAttentionPoints);
+              setActiveSystemTypes(initialSystemTypes);
+              setIsModalOpen(false);
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Client
-          </label>
-          <input
-            type="text"
-            value={editingProjectInfo.client}
-            onChange={(e) => {
-              editingProjectInfo.client = e.target.value;
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date de début
-            </label>
-            <input
-              type="date"
-              value={editingProjectInfo.startDate}
-              onChange={(e) => {
-                editingProjectInfo.startDate = e.target.value;
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date de fin
-            </label>
-            <input
-              type="date"
-              value={editingProjectInfo.endDate}
-              onChange={(e) => {
-                editingProjectInfo.endDate = e.target.value;
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+          >
+            Réinitialiser
+          </button>
         </div>
       </div>
     );
     setModalSaveAction(() => () => {
-      // Update project info with the edited values and update last updated date
-      setProjectInfo({
-        ...editingProjectInfo,
-        lastUpdated: new Date().toISOString().split('T')[0]
-      });
-      setIsModalOpen(false);
+      // This is handled by the buttons
     });
     setIsModalOpen(true);
   };
@@ -676,6 +666,13 @@ function App() {
             </div>
             <div className="flex items-center space-x-2">
               <button 
+                onClick={handleReset}
+                className="p-2 rounded-full hover:bg-gray-100"
+                title="Réinitialiser"
+              >
+                <RefreshCw className="h-5 w-5 text-gray-600" />
+              </button>
+              <button 
                 onClick={handlePrint}
                 className="p-2 rounded-full hover:bg-gray-100"
                 title="Imprimer"
@@ -699,7 +696,7 @@ function App() {
           <ProjectOverview 
             projectInfo={projectInfo} 
             overallProgress={overallProgress}
-            onEdit={handleEditProject}
+            onUpdate={setProjectInfo}
           />
           
           <div className="space-y-4 print:space-y-2">

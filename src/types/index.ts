@@ -1,6 +1,7 @@
 export interface ProjectInfo {
   name: string;
   client: string;
+  company: string;
   startDate: string;
   endDate: string;
   lastUpdated: string;
@@ -49,4 +50,13 @@ export interface AttentionPoint {
   details: string;
   severity: 'low' | 'medium' | 'high';
   date: string;
+}
+
+export interface DashboardData {
+  projectInfo: ProjectInfo;
+  parkingLevels: ParkingLevel[];
+  centralSystems: CentralSystem[];
+  nextSteps: NextStep[];
+  attentionPoints: AttentionPoint[];
+  systemTypes: SystemType[];
 }
