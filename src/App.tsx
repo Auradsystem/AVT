@@ -36,6 +36,13 @@ function App() {
   const [modalContent, setModalContent] = useState<React.ReactNode>(null);
   const [modalSaveAction, setModalSaveAction] = useState<() => void>(() => {});
 
+  // États temporaires pour les nouveaux éléments
+  const [newStepDescription, setNewStepDescription] = useState('');
+  const [newStepDueDate, setNewStepDueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newPointDescription, setNewPointDescription] = useState('');
+  const [newPointDetails, setNewPointDetails] = useState('');
+  const [newPointSeverity, setNewPointSeverity] = useState<'low' | 'medium' | 'high'>('medium');
+
   // Charger les données depuis le localStorage au démarrage
   useEffect(() => {
     const savedData = loadData();
@@ -454,15 +461,11 @@ function App() {
 
   // Add next step
   const handleAddNextStep = () => {
-    setModalTitle('Ajouter une étape');
+    // Réinitialiser les valeurs
+    setNewStepDescription('');
+    setNewStepDueDate(new Date().toISOString().split('T')[0]);
     
-    // Utiliser un état local pour le formulaire
-    const [newStepData, setNewStepData] = useState({
-      id: nextSteps.length > 0 ? Math.max(...nextSteps.map(s => s.id)) + 1 : 1,
-      description: '',
-      dueDate: new Date().toISOString().split('T')[0]
-    });
-
+    setModalTitle('Ajouter une étape');
     setModalContent(
       <div className="space-y-4">
         <div>
@@ -471,10 +474,8 @@ function App() {
           </label>
           <input
             type="text"
-            value={newStepData.description}
-            onChange={(e) => {
-              setNewStepData({...newStepData, description: e.target.value});
-            }}
+            value={newStepDescription}
+            onChange={(e) => setNewStepDescription(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -484,10 +485,8 @@ function App() {
           </label>
           <input
             type="date"
-            value={newStepData.dueDate}
-            onChange={(e) => {
-              setNewStepData({...newStepData, dueDate: e.target.value});
-            }}
+            value={newStepDueDate}
+            onChange={(e) => setNewStepDueDate(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -495,8 +494,13 @@ function App() {
     );
     
     setModalSaveAction(() => () => {
-      if (newStepData.description.trim()) {
-        setNextSteps([...nextSteps, newStepData]);
+      if (newStepDescription.trim()) {
+        const newId = nextSteps.length > 0 ? Math.max(...nextSteps.map(s => s.id)) + 1 : 1;
+        setNextSteps([...nextSteps, {
+          id: newId,
+          description: newStepDescription,
+          dueDate: newStepDueDate
+        }]);
       }
       setIsModalOpen(false);
     });
@@ -590,17 +594,12 @@ function App() {
 
   // Add attention point
   const handleAddAttentionPoint = () => {
-    setModalTitle('Ajouter un point d\'attention');
+    // Réinitialiser les valeurs
+    setNewPointDescription('');
+    setNewPointDetails('');
+    setNewPointSeverity('medium');
     
-    // Utiliser un état local pour le formulaire
-    const [newPointData, setNewPointData] = useState({
-      id: attentionPoints.length > 0 ? Math.max(...attentionPoints.map(p => p.id)) + 1 : 1,
-      description: '',
-      details: '',
-      severity: 'medium' as const,
-      date: new Date().toISOString().split('T')[0]
-    });
-
+    setModalTitle('Ajouter un point d\'attention');
     setModalContent(
       <div className="space-y-4">
         <div>
@@ -609,10 +608,8 @@ function App() {
           </label>
           <input
             type="text"
-            value={newPointData.description}
-            onChange={(e) => {
-              setNewPointData({...newPointData, description: e.target.value});
-            }}
+            value={newPointDescription}
+            onChange={(e) => setNewPointDescription(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -621,10 +618,8 @@ function App() {
             Détails
           </label>
           <textarea
-            value={newPointData.details}
-            onChange={(e) => {
-              setNewPointData({...newPointData, details: e.target.value});
-            }}
+            value={newPointDetails}
+            onChange={(e) => setNewPointDetails(e.target.value)}
             rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
@@ -634,10 +629,8 @@ function App() {
             Sévérité
           </label>
           <select
-            value={newPointData.severity}
-            onChange={(e) => {
-              setNewPointData({...newPointData, severity: e.target.value as any});
-            }}
+            value={newPointSeverity}
+            onChange={(e) => setNewPointSeverity(e.target.value as any)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="low">Faible</option>
@@ -649,8 +642,15 @@ function App() {
     );
     
     setModalSaveAction(() => () => {
-      if (newPointData.description.trim()) {
-        setAttentionPoints([...attentionPoints, newPointData]);
+      if (newPointDescription.trim()) {
+        const newId = attentionPoints.length > 0 ? Math.max(...attentionPoints.map(p => p.id)) + 1 : 1;
+        setAttentionPoints([...attentionPoints, {
+          id: newId,
+          description: newPointDescription,
+          details: newPointDetails,
+          severity: newPointSeverity,
+          date: new Date().toISOString().split('T')[0]
+        }]);
       }
       setIsModalOpen(false);
     });
