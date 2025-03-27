@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { X } from 'lucide-react';
 
 interface EditModalProps {
@@ -6,7 +6,7 @@ interface EditModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  onSave: () => void;
+  onSave?: () => void;
 }
 
 const EditModal: React.FC<EditModalProps> = ({ 
@@ -16,73 +16,65 @@ const EditModal: React.FC<EditModalProps> = ({
   children,
   onSave
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true);
-    } else {
-      setTimeout(() => {
-        setIsVisible(false);
-      }, 300);
-    }
-  }, [isOpen]);
-
-  if (!isVisible && !isOpen) {
+  if (!isOpen) {
     return null;
   }
 
-  const handleModalClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
-  const handleBackdropClick = () => {
-    onClose();
-  };
-
   return (
-    <div 
-      className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 ${
-        isOpen ? 'opacity-100' : 'opacity-0'
-      }`}
-      onClick={handleBackdropClick}
-    >
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      {/* Backdrop */}
       <div 
-        className={`bg-white rounded-lg shadow-xl w-full max-w-md transform transition-transform duration-300 ${
-          isOpen ? 'scale-100' : 'scale-95'
-        }`}
-        onClick={handleModalClick}
-      >
-        <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
-          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
-            type="button"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        
-        <div className="px-6 py-4">
-          {children}
-        </div>
-        
-        <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3 rounded-b-lg">
-          <button
-            type="button"
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            onClick={onClose}
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-            onClick={onSave}
-          >
-            Enregistrer
-          </button>
+        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        onClick={onClose}
+      />
+      
+      {/* Modal */}
+      <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+        <div 
+          className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="bg-white px-4 py-5 sm:px-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium leading-6 text-gray-900">
+                {title}
+              </h3>
+              <button
+                type="button"
+                className="text-gray-400 hover:text-gray-500"
+                onClick={onClose}
+              >
+                <span className="sr-only">Fermer</span>
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Content */}
+          <div className="bg-white px-4 py-5 sm:p-6">
+            {children}
+          </div>
+          
+          {/* Footer - only rendered if onSave is provided */}
+          {onSave && (
+            <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+              <button
+                type="button"
+                className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
+                onClick={onSave}
+              >
+                Enregistrer
+              </button>
+              <button
+                type="button"
+                className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                onClick={onClose}
+              >
+                Annuler
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

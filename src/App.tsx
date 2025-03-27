@@ -7,6 +7,11 @@ import AttentionPoints from './components/AttentionPoints';
 import EditModal from './components/EditModal';
 import EditLevelForm from './components/EditLevelForm';
 import EditCentralSystemForm from './components/EditCentralSystemForm';
+import AddStepForm from './components/forms/AddStepForm';
+import EditStepForm from './components/forms/EditStepForm';
+import AddAttentionPointForm from './components/forms/AddAttentionPointForm';
+import EditAttentionPointForm from './components/forms/EditAttentionPointForm';
+
 import { 
   projectInfo as initialProjectInfo, 
   parkingLevels as initialParkingLevels, 
@@ -16,7 +21,7 @@ import {
   attentionPoints as initialAttentionPoints,
   calculateOverallProgress
 } from './data/mockData';
-import { Activity, Settings, Printer, Save, RefreshCw } from 'lucide-react';
+import { Activity, Settings, Printer, RefreshCw } from 'lucide-react';
 import { ParkingLevel, CentralSystem, SystemType, ProjectInfo, NextStep, AttentionPoint } from './types';
 import { saveData, loadData } from './utils/storage';
 
@@ -38,13 +43,6 @@ function App() {
 
   // États pour l'édition
   const [editingSystemTypes, setEditingSystemTypes] = useState<SystemType[]>([]);
-  const [editingNextStep, setEditingNextStep] = useState<NextStep | null>(null);
-  const [editingAttentionPoint, setEditingAttentionPoint] = useState<AttentionPoint | null>(null);
-  const [newStepDescription, setNewStepDescription] = useState('');
-  const [newStepDueDate, setNewStepDueDate] = useState('');
-  const [newPointDescription, setNewPointDescription] = useState('');
-  const [newPointDetails, setNewPointDetails] = useState('');
-  const [newPointSeverity, setNewPointSeverity] = useState<'low' | 'medium' | 'high'>('medium');
 
   // Charger les données depuis le localStorage au démarrage
   useEffect(() => {
@@ -429,105 +427,38 @@ function App() {
     const step = nextSteps.find(step => step.id === stepId);
     if (!step) return;
     
-    setEditingNextStep({...step});
     setModalTitle('Modifier l\'étape');
     setModalContent(
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <input
-            type="text"
-            value={editingNextStep?.description || ''}
-            onChange={(e) => {
-              if (editingNextStep) {
-                setEditingNextStep({
-                  ...editingNextStep,
-                  description: e.target.value
-                });
-              }
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date d'échéance
-          </label>
-          <input
-            type="date"
-            value={editingNextStep?.dueDate || ''}
-            onChange={(e) => {
-              if (editingNextStep) {
-                setEditingNextStep({
-                  ...editingNextStep,
-                  dueDate: e.target.value
-                });
-              }
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-      </div>
+      <EditStepForm
+        step={step}
+        onSubmit={(updatedStep) => {
+          setNextSteps(nextSteps.map(s => 
+            s.id === stepId ? updatedStep : s
+          ));
+          setIsModalOpen(false);
+        }}
+        onCancel={() => setIsModalOpen(false)}
+      />
     );
-    setModalSaveAction(() => () => {
-      if (editingNextStep) {
-        setNextSteps(nextSteps.map(s => 
-          s.id === stepId ? editingNextStep : s
-        ));
-      }
-      setIsModalOpen(false);
-    });
     setIsModalOpen(true);
   };
 
   // Add next step
   const handleAddNextStep = () => {
-    // Réinitialiser les valeurs
-    setNewStepDescription('');
-    setNewStepDueDate(new Date().toISOString().split('T')[0]);
-    
     setModalTitle('Ajouter une étape');
     setModalContent(
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <input
-            type="text"
-            value={newStepDescription}
-            onChange={(e) => setNewStepDescription(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date d'échéance
-          </label>
-          <input
-            type="date"
-            value={newStepDueDate}
-            onChange={(e) => setNewStepDueDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-      </div>
+      <AddStepForm
+        onSubmit={(stepData) => {
+          const newId = nextSteps.length > 0 ? Math.max(...nextSteps.map(s => s.id)) + 1 : 1;
+          setNextSteps([...nextSteps, {
+            id: newId,
+            ...stepData
+          }]);
+          setIsModalOpen(false);
+        }}
+        onCancel={() => setIsModalOpen(false)}
+      />
     );
-    
-    setModalSaveAction(() => () => {
-      if (newStepDescription.trim()) {
-        const newId = nextSteps.length > 0 ? Math.max(...nextSteps.map(s => s.id)) + 1 : 1;
-        setNextSteps([...nextSteps, {
-          id: newId,
-          description: newStepDescription,
-          dueDate: newStepDueDate
-        }]);
-      }
-      setIsModalOpen(false);
-    });
-    
     setIsModalOpen(true);
   };
 
@@ -541,161 +472,39 @@ function App() {
     const point = attentionPoints.find(point => point.id === pointId);
     if (!point) return;
     
-    setEditingAttentionPoint({...point});
     setModalTitle('Modifier le point d\'attention');
     setModalContent(
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <input
-            type="text"
-            value={editingAttentionPoint?.description || ''}
-            onChange={(e) => {
-              if (editingAttentionPoint) {
-                setEditingAttentionPoint({
-                  ...editingAttentionPoint,
-                  description: e.target.value
-                });
-              }
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Détails
-          </label>
-          <textarea
-            value={editingAttentionPoint?.details || ''}
-            onChange={(e) => {
-              if (editingAttentionPoint) {
-                setEditingAttentionPoint({
-                  ...editingAttentionPoint,
-                  details: e.target.value
-                });
-              }
-            }}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Sévérité
-          </label>
-          <select
-            value={editingAttentionPoint?.severity || 'medium'}
-            onChange={(e) => {
-              if (editingAttentionPoint) {
-                setEditingAttentionPoint({
-                  ...editingAttentionPoint,
-                  severity: e.target.value as any
-                });
-              }
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="low">Faible</option>
-            <option value="medium">Moyenne</option>
-            <option value="high">Élevée</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date
-          </label>
-          <input
-            type="date"
-            value={editingAttentionPoint?.date || ''}
-            onChange={(e) => {
-              if (editingAttentionPoint) {
-                setEditingAttentionPoint({
-                  ...editingAttentionPoint,
-                  date: e.target.value
-                });
-              }
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-      </div>
+      <EditAttentionPointForm
+        point={point}
+        onSubmit={(updatedPoint) => {
+          setAttentionPoints(attentionPoints.map(p => 
+            p.id === pointId ? updatedPoint : p
+          ));
+          setIsModalOpen(false);
+        }}
+        onCancel={() => setIsModalOpen(false)}
+      />
     );
-    setModalSaveAction(() => () => {
-      if (editingAttentionPoint) {
-        setAttentionPoints(attentionPoints.map(p => 
-          p.id === pointId ? editingAttentionPoint : p
-        ));
-      }
-      setIsModalOpen(false);
-    });
     setIsModalOpen(true);
   };
 
   // Add attention point
   const handleAddAttentionPoint = () => {
-    // Réinitialiser les valeurs
-    setNewPointDescription('');
-    setNewPointDetails('');
-    setNewPointSeverity('medium');
-    
     setModalTitle('Ajouter un point d\'attention');
     setModalContent(
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <input
-            type="text"
-            value={newPointDescription}
-            onChange={(e) => setNewPointDescription(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Détails
-          </label>
-          <textarea
-            value={newPointDetails}
-            onChange={(e) => setNewPointDetails(e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Sévérité
-          </label>
-          <select
-            value={newPointSeverity}
-            onChange={(e) => setNewPointSeverity(e.target.value as any)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="low">Faible</option>
-            <option value="medium">Moyenne</option>
-            <option value="high">Élevée</option>
-          </select>
-        </div>
-      </div>
+      <AddAttentionPointForm
+        onSubmit={(pointData) => {
+          const newId = attentionPoints.length > 0 ? Math.max(...attentionPoints.map(p => p.id)) + 1 : 1;
+          setAttentionPoints([...attentionPoints, {
+            id: newId,
+            date: new Date().toISOString().split('T')[0],
+            ...pointData
+          }]);
+          setIsModalOpen(false);
+        }}
+        onCancel={() => setIsModalOpen(false)}
+      />
     );
-    
-    setModalSaveAction(() => () => {
-      if (newPointDescription.trim()) {
-        const newId = attentionPoints.length > 0 ? Math.max(...attentionPoints.map(p => p.id)) + 1 : 1;
-        setAttentionPoints([...attentionPoints, {
-          id: newId,
-          description: newPointDescription,
-          details: newPointDetails,
-          severity: newPointSeverity,
-          date: new Date().toISOString().split('T')[0]
-        }]);
-      }
-      setIsModalOpen(false);
-    });
-    
     setIsModalOpen(true);
   };
 
