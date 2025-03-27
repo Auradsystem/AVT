@@ -1,64 +1,61 @@
 import React from 'react';
 import { NextStep } from '../types';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
-import { Calendar, Edit2, Plus, Trash2 } from 'lucide-react';
 
 interface NextStepsProps {
   steps: NextStep[];
-  onEdit: (stepId: number) => void;
+  onEdit: (id: number) => void;
   onAdd: () => void;
-  onDelete: (stepId: number) => void;
+  onDelete: (id: number) => void;
 }
 
 const NextSteps: React.FC<NextStepsProps> = ({ steps, onEdit, onAdd, onDelete }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 print:shadow-none print:p-2 print:border print:border-gray-200">
-      <div className="flex justify-between items-center mb-3 print:mb-2">
-        <h2 className="text-lg font-semibold text-gray-800">Prochaines étapes</h2>
-        <button 
+    <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200">
+        <h2 className="text-lg font-medium text-gray-900">Prochaines étapes</h2>
+        <button
           onClick={onAdd}
-          className="p-1.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 print:hidden"
+          className="p-1 rounded-full hover:bg-gray-100 print:hidden"
           title="Ajouter une étape"
         >
-          <Plus size={16} />
+          <Plus className="h-5 w-5 text-blue-600" />
         </button>
       </div>
       
-      {steps.length === 0 ? (
-        <p className="text-gray-500 italic text-sm">Aucune étape à venir</p>
-      ) : (
-        <ul className="divide-y divide-gray-200">
-          {steps.map((step) => (
-            <li key={step.id} className="py-2 first:pt-0 last:pb-0">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start">
-                  <Calendar className="h-4 w-4 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-gray-800 text-sm">{step.description}</p>
-                    <p className="text-xs text-gray-500">{formatDate(step.dueDate)}</p>
-                  </div>
+      <div className="px-6 py-4">
+        {steps.length > 0 ? (
+          <ul className="space-y-3">
+            {steps.map((step) => (
+              <li key={step.id} className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{step.description}</p>
+                  <p className="text-xs text-gray-500">Échéance: {formatDate(step.dueDate)}</p>
                 </div>
                 <div className="flex space-x-1 print:hidden">
-                  <button 
+                  <button
                     onClick={() => onEdit(step.id)}
-                    className="text-blue-500 hover:text-blue-700"
+                    className="p-1 rounded-full hover:bg-gray-100"
                     title="Modifier"
                   >
-                    <Edit2 size={14} />
+                    <Edit2 className="h-4 w-4 text-gray-500" />
                   </button>
-                  <button 
+                  <button
                     onClick={() => onDelete(step.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="p-1 rounded-full hover:bg-gray-100"
                     title="Supprimer"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 className="h-4 w-4 text-red-500" />
                   </button>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500 italic">Aucune étape à venir</p>
+        )}
+      </div>
     </div>
   );
 };

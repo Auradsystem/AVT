@@ -17,7 +17,7 @@ import {
   calculateOverallProgress
 } from './data/mockData';
 import { Activity, Settings, Printer, Save, RefreshCw } from 'lucide-react';
-import { ParkingLevel, CentralSystem, SystemType, ProjectInfo } from './types';
+import { ParkingLevel, CentralSystem, SystemType, ProjectInfo, NextStep, AttentionPoint } from './types';
 import { saveData, loadData } from './utils/storage';
 
 function App() {
@@ -36,9 +36,12 @@ function App() {
   const [modalContent, setModalContent] = useState<React.ReactNode>(null);
   const [modalSaveAction, setModalSaveAction] = useState<() => void>(() => {});
 
-  // États temporaires pour les nouveaux éléments
+  // États pour l'édition
+  const [editingSystemTypes, setEditingSystemTypes] = useState<SystemType[]>([]);
+  const [editingNextStep, setEditingNextStep] = useState<NextStep | null>(null);
+  const [editingAttentionPoint, setEditingAttentionPoint] = useState<AttentionPoint | null>(null);
   const [newStepDescription, setNewStepDescription] = useState('');
-  const [newStepDueDate, setNewStepDueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newStepDueDate, setNewStepDueDate] = useState('');
   const [newPointDescription, setNewPointDescription] = useState('');
   const [newPointDetails, setNewPointDetails] = useState('');
   const [newPointSeverity, setNewPointSeverity] = useState<'low' | 'medium' | 'high'>('medium');
@@ -119,22 +122,23 @@ function App() {
 
   // Edit system types
   const handleEditSystemTypes = () => {
+    setEditingSystemTypes([...activeSystemTypes]);
     setModalTitle('Gérer les types de systèmes');
     setModalContent(
       <div className="space-y-4">
         <p className="text-sm text-gray-600">
           Ajoutez, modifiez ou supprimez les types de systèmes. La suppression d'un type affectera le calcul global.
         </p>
-        {activeSystemTypes.map((type, index) => (
+        {editingSystemTypes.map((type, index) => (
           <div key={type.id} className="flex items-center space-x-2 pb-3 border-b border-gray-200">
             <div className="flex-grow">
               <input
                 type="text"
                 value={type.name}
                 onChange={(e) => {
-                  const updated = [...activeSystemTypes];
+                  const updated = [...editingSystemTypes];
                   updated[index] = { ...type, name: e.target.value };
-                  setActiveSystemTypes(updated);
+                  setEditingSystemTypes(updated);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -144,26 +148,19 @@ function App() {
                 type="number"
                 min="1"
                 max="100"
-                value={type.weight * 100}
+                value={Math.round(type.weight * 100)}
                 onChange={(e) => {
-                  const updated = [...activeSystemTypes];
+                  const updated = [...editingSystemTypes];
                   updated[index] = { ...type, weight: parseInt(e.target.value) / 100 };
-                  setActiveSystemTypes(updated);
+                  setEditingSystemTypes(updated);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <button
               onClick={() => {
-                const updated = activeSystemTypes.filter((_, i) => i !== index);
-                setActiveSystemTypes(updated);
-                
-                // Also update all levels to remove this system type
-                const updatedLevels = parkingLevels.map(level => ({
-                  ...level,
-                  systems: level.systems.filter(sys => sys.systemId !== type.id)
-                }));
-                setParkingLevels(updatedLevels);
+                const updated = editingSystemTypes.filter((_, i) => i !== index);
+                setEditingSystemTypes(updated);
               }}
               className="p-2 text-red-500 hover:text-red-700"
             >
@@ -174,20 +171,10 @@ function App() {
         <button
           onClick={() => {
             const newId = `system-${Date.now()}`;
-            setActiveSystemTypes([
-              ...activeSystemTypes,
+            setEditingSystemTypes([
+              ...editingSystemTypes,
               { id: newId, name: 'Nouveau système', weight: 0.1 }
             ]);
-            
-            // Add this system to all levels with 0% progress
-            const updatedLevels = parkingLevels.map(level => ({
-              ...level,
-              systems: [
-                ...level.systems,
-                { systemId: newId, progress: 0, status: 'not-started' as const }
-              ]
-            }));
-            setParkingLevels(updatedLevels);
           }}
           className="w-full px-4 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
         >
@@ -197,13 +184,37 @@ function App() {
     );
     setModalSaveAction(() => () => {
       // Normalize weights to ensure they sum to 1
-      const totalWeight = activeSystemTypes.reduce((sum, type) => sum + type.weight, 0);
+      const totalWeight = editingSystemTypes.reduce((sum, type) => sum + type.weight, 0);
       if (totalWeight > 0) {
-        const normalizedTypes = activeSystemTypes.map(type => ({
+        const normalizedTypes = editingSystemTypes.map(type => ({
           ...type,
           weight: type.weight / totalWeight
         }));
         setActiveSystemTypes(normalizedTypes);
+        
+        // Update all levels to add/remove system types
+        const updatedLevels = parkingLevels.map(level => {
+          // Keep existing systems that are still in the types list
+          const existingSystems = level.systems.filter(sys => 
+            normalizedTypes.some(type => type.id === sys.systemId)
+          );
+          
+          // Add new systems that aren't already in this level
+          const newSystems = normalizedTypes
+            .filter(type => !existingSystems.some(sys => sys.systemId === type.id))
+            .map(type => ({
+              systemId: type.id,
+              progress: 0,
+              status: 'not-started' as const
+            }));
+          
+          return {
+            ...level,
+            systems: [...existingSystems, ...newSystems]
+          };
+        });
+        
+        setParkingLevels(updatedLevels);
       }
       setIsModalOpen(false);
     });
@@ -417,7 +428,8 @@ function App() {
   const handleEditNextStep = (stepId: number) => {
     const step = nextSteps.find(step => step.id === stepId);
     if (!step) return;
-
+    
+    setEditingNextStep({...step});
     setModalTitle('Modifier l\'étape');
     setModalContent(
       <div className="space-y-4">
@@ -427,11 +439,14 @@ function App() {
           </label>
           <input
             type="text"
-            value={step.description}
+            value={editingNextStep?.description || ''}
             onChange={(e) => {
-              setNextSteps(nextSteps.map(s => 
-                s.id === stepId ? { ...s, description: e.target.value } : s
-              ));
+              if (editingNextStep) {
+                setEditingNextStep({
+                  ...editingNextStep,
+                  description: e.target.value
+                });
+              }
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
@@ -442,11 +457,14 @@ function App() {
           </label>
           <input
             type="date"
-            value={step.dueDate}
+            value={editingNextStep?.dueDate || ''}
             onChange={(e) => {
-              setNextSteps(nextSteps.map(s => 
-                s.id === stepId ? { ...s, dueDate: e.target.value } : s
-              ));
+              if (editingNextStep) {
+                setEditingNextStep({
+                  ...editingNextStep,
+                  dueDate: e.target.value
+                });
+              }
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
@@ -454,6 +472,11 @@ function App() {
       </div>
     );
     setModalSaveAction(() => () => {
+      if (editingNextStep) {
+        setNextSteps(nextSteps.map(s => 
+          s.id === stepId ? editingNextStep : s
+        ));
+      }
       setIsModalOpen(false);
     });
     setIsModalOpen(true);
@@ -517,7 +540,8 @@ function App() {
   const handleEditAttentionPoint = (pointId: number) => {
     const point = attentionPoints.find(point => point.id === pointId);
     if (!point) return;
-
+    
+    setEditingAttentionPoint({...point});
     setModalTitle('Modifier le point d\'attention');
     setModalContent(
       <div className="space-y-4">
@@ -527,11 +551,14 @@ function App() {
           </label>
           <input
             type="text"
-            value={point.description}
+            value={editingAttentionPoint?.description || ''}
             onChange={(e) => {
-              setAttentionPoints(attentionPoints.map(p => 
-                p.id === pointId ? { ...p, description: e.target.value } : p
-              ));
+              if (editingAttentionPoint) {
+                setEditingAttentionPoint({
+                  ...editingAttentionPoint,
+                  description: e.target.value
+                });
+              }
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
@@ -541,11 +568,14 @@ function App() {
             Détails
           </label>
           <textarea
-            value={point.details}
+            value={editingAttentionPoint?.details || ''}
             onChange={(e) => {
-              setAttentionPoints(attentionPoints.map(p => 
-                p.id === pointId ? { ...p, details: e.target.value } : p
-              ));
+              if (editingAttentionPoint) {
+                setEditingAttentionPoint({
+                  ...editingAttentionPoint,
+                  details: e.target.value
+                });
+              }
             }}
             rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -556,11 +586,14 @@ function App() {
             Sévérité
           </label>
           <select
-            value={point.severity}
+            value={editingAttentionPoint?.severity || 'medium'}
             onChange={(e) => {
-              setAttentionPoints(attentionPoints.map(p => 
-                p.id === pointId ? { ...p, severity: e.target.value as any } : p
-              ));
+              if (editingAttentionPoint) {
+                setEditingAttentionPoint({
+                  ...editingAttentionPoint,
+                  severity: e.target.value as any
+                });
+              }
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           >
@@ -575,11 +608,14 @@ function App() {
           </label>
           <input
             type="date"
-            value={point.date}
+            value={editingAttentionPoint?.date || ''}
             onChange={(e) => {
-              setAttentionPoints(attentionPoints.map(p => 
-                p.id === pointId ? { ...p, date: e.target.value } : p
-              ));
+              if (editingAttentionPoint) {
+                setEditingAttentionPoint({
+                  ...editingAttentionPoint,
+                  date: e.target.value
+                });
+              }
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
@@ -587,6 +623,11 @@ function App() {
       </div>
     );
     setModalSaveAction(() => () => {
+      if (editingAttentionPoint) {
+        setAttentionPoints(attentionPoints.map(p => 
+          p.id === pointId ? editingAttentionPoint : p
+        ));
+      }
       setIsModalOpen(false);
     });
     setIsModalOpen(true);
