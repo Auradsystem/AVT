@@ -30,6 +30,19 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     }
   };
 
+  // Couleur basée sur le pourcentage d'avancement
+  const getProgressColor = () => {
+    if (progress < 25) {
+      return 'bg-red-500'; // Rouge pour moins de 25%
+    } else if (progress < 50) {
+      return 'bg-amber-500'; // Ambre pour 25-49%
+    } else if (progress < 75) {
+      return 'bg-blue-500'; // Bleu pour 50-74%
+    } else {
+      return 'bg-green-500'; // Vert pour 75-100%
+    }
+  };
+
   const getStatusText = () => {
     switch (status) {
       case 'not-started':
@@ -47,11 +60,14 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     }
   };
 
+  // Utiliser la couleur basée sur le statut OU sur le pourcentage
+  const barColor = status !== 'in-progress' ? getStatusColor() : getProgressColor();
+
   return (
     <div className="w-full">
       <div className={`w-full bg-gray-200 rounded-full ${height}`}>
         <div
-          className={`${getStatusColor()} ${height} rounded-full transition-all duration-500 ease-in-out`}
+          className={`${barColor} ${height} rounded-full transition-all duration-500 ease-in-out`}
           style={{ width: `${progress}%` }}
         ></div>
       </div>
