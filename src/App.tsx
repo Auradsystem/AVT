@@ -17,10 +17,10 @@ import {
   calculateOverallProgress
 } from './data/mockData';
 import { Activity, Settings, Printer } from 'lucide-react';
-import { ParkingLevel, CentralSystem, SystemType } from './types';
+import { ParkingLevel, CentralSystem, SystemType, ProjectInfo } from './types';
 
 function App() {
-  const [projectInfo, setProjectInfo] = useState(initialProjectInfo);
+  const [projectInfo, setProjectInfo] = useState<ProjectInfo>(initialProjectInfo);
   const [parkingLevels, setParkingLevels] = useState(initialParkingLevels);
   const [centralSystems, setCentralSystems] = useState(initialCentralSystems);
   const [nextSteps, setNextSteps] = useState(initialNextSteps);
@@ -47,6 +47,9 @@ function App() {
 
   // Edit project info
   const handleEditProject = () => {
+    // Créer une copie locale pour l'édition
+    const editingProjectInfo = { ...projectInfo };
+    
     setModalTitle('Modifier les informations du projet');
     setModalContent(
       <div className="space-y-4">
@@ -56,8 +59,10 @@ function App() {
           </label>
           <input
             type="text"
-            value={projectInfo.name}
-            onChange={(e) => setProjectInfo({ ...projectInfo, name: e.target.value })}
+            value={editingProjectInfo.name}
+            onChange={(e) => {
+              editingProjectInfo.name = e.target.value;
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -67,8 +72,10 @@ function App() {
           </label>
           <input
             type="text"
-            value={projectInfo.client}
-            onChange={(e) => setProjectInfo({ ...projectInfo, client: e.target.value })}
+            value={editingProjectInfo.client}
+            onChange={(e) => {
+              editingProjectInfo.client = e.target.value;
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -79,8 +86,10 @@ function App() {
             </label>
             <input
               type="date"
-              value={projectInfo.startDate}
-              onChange={(e) => setProjectInfo({ ...projectInfo, startDate: e.target.value })}
+              value={editingProjectInfo.startDate}
+              onChange={(e) => {
+                editingProjectInfo.startDate = e.target.value;
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -90,8 +99,10 @@ function App() {
             </label>
             <input
               type="date"
-              value={projectInfo.endDate}
-              onChange={(e) => setProjectInfo({ ...projectInfo, endDate: e.target.value })}
+              value={editingProjectInfo.endDate}
+              onChange={(e) => {
+                editingProjectInfo.endDate = e.target.value;
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -99,9 +110,9 @@ function App() {
       </div>
     );
     setModalSaveAction(() => () => {
-      // Update last updated date
+      // Update project info with the edited values and update last updated date
       setProjectInfo({
-        ...projectInfo,
+        ...editingProjectInfo,
         lastUpdated: new Date().toISOString().split('T')[0]
       });
       setIsModalOpen(false);

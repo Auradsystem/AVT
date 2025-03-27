@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ParkingLevel, SystemType } from '../types';
 import ProgressBar from './ProgressBar';
-import { AlertTriangle, CheckCircle, Edit2, Trash2, Plus } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Edit2, Trash2, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { calculateLevelProgress } from '../data/mockData';
 
 interface CombinedLevelProgressProps {
@@ -19,23 +19,55 @@ const CombinedLevelProgress: React.FC<CombinedLevelProgressProps> = ({
   onDeleteLevel,
   onAddLevel
 }) => {
-  const [expandedLevel, setExpandedLevel] = useState<number | null>(null);
+  // Utiliser un objet pour suivre l'état d'expansion de chaque niveau
+  const [expandedLevels, setExpandedLevels] = useState<Record<number, boolean>>({});
 
   const toggleExpand = (levelId: number) => {
-    setExpandedLevel(expandedLevel === levelId ? null : levelId);
+    setExpandedLevels(prev => ({
+      ...prev,
+      [levelId]: !prev[levelId]
+    }));
+  };
+
+  // Fonction pour développer tous les niveaux
+  const expandAll = () => {
+    const allExpanded: Record<number, boolean> = {};
+    levels.forEach(level => {
+      allExpanded[level.id] = true;
+    });
+    setExpandedLevels(allExpanded);
+  };
+
+  // Fonction pour réduire tous les niveaux
+  const collapseAll = () => {
+    setExpandedLevels({});
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4 print:shadow-none print:p-2 print:border print:border-gray-200">
       <div className="flex justify-between items-center mb-3 print:mb-2">
         <h2 className="text-lg font-semibold text-gray-800">Avancement par niveau</h2>
-        <button 
-          onClick={onAddLevel}
-          className="p-1.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 print:hidden"
-          title="Ajouter un niveau"
-        >
-          <Plus size={16} />
-        </button>
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={expandAll}
+            className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 print:hidden"
+          >
+            Tout développer
+          </button>
+          <button 
+            onClick={collapseAll}
+            className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 print:hidden"
+          >
+            Tout réduire
+          </button>
+          <button 
+            onClick={onAddLevel}
+            className="p-1.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 print:hidden"
+            title="Ajouter un niveau"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
       </div>
       
       <div className="overflow-x-auto">
@@ -62,16 +94,25 @@ const CombinedLevelProgress: React.FC<CombinedLevelProgressProps> = ({
           <tbody className="bg-white divide-y divide-gray-200">
             {levels.map((level) => {
               const levelProgress = calculateLevelProgress(level, systemTypes);
-              const isExpanded = expandedLevel === level.id;
+              const isExpanded = expandedLevels[level.id] || false;
               
               return (
                 <React.Fragment key={level.id}>
                   <tr 
-                    className={`hover:bg-gray-50 cursor-pointer ${isExpanded ? 'bg-blue-50 print:bg-blue-50' : ''}`}
-                    onClick={() => toggleExpand(level.id)}
+                    className={`hover:bg-gray-50 ${isExpanded ? 'bg-blue-50 print:bg-blue-50' : ''}`}
                   >
                     <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
-                      {level.name}
+                      <button 
+                        className="flex items-center focus:outline-none"
+                        onClick={() => toggleExpand(level.id)}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp size={16} className="mr-1 text-blue-500" />
+                        ) : (
+                          <ChevronDown size={16} className="mr-1 text-gray-500" />
+                        )}
+                        {level.name}
+                      </button>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${level.isCollector ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
@@ -100,20 +141,14 @@ const CombinedLevelProgress: React.FC<CombinedLevelProgressProps> = ({
                     <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium print:hidden">
                       <div className="flex justify-end space-x-2">
                         <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditLevel(level.id);
-                          }}
+                          onClick={() => onEditLevel(level.id)}
                           className="text-blue-600 hover:text-blue-900"
                           title="Modifier"
                         >
                           <Edit2 size={14} />
                         </button>
                         <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteLevel(level.id);
-                          }}
+                          onClick={() => onDeleteLevel(level.id)}
                           className="text-red-600 hover:text-red-900"
                           title="Supprimer"
                         >
